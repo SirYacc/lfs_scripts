@@ -3,7 +3,7 @@ exec 4> $0.log
 export BASH_XTRACEFD=4
 set -o xtrace
 
-file="./system_tmp"
+file="$1"
 binutNbPass="0"
 gccNbPass="0"
 
@@ -11,7 +11,7 @@ function gcc_lib_init (){
 
 	tar -xf ../mpfr-3.1.3.tar.xz
 	mv -v mpfr-3.1.3 mpfr
-	tar -xf ../gmp-6.0.0.a.tar.xz
+	tar -xf ../gmp-6.0.0a.tar.xz
 	mv -v gmp-6.0.0 gmp
 	tar -xf ../mpc-1.0.3.tar.gz
 	mv -v mpc-1.0.3 mpc
@@ -44,7 +44,7 @@ function binut_preconf (){
 	cd ../"$buildDir"
 	confVar="CC=$LFS_TGT-gcc; AR=$LFS_TGT-ar; RANLIB=$LFS_TGT-ranlib"
 	confPath="../$2"
-	confParams="--prefix=/tools --with-sysroot=$LFS --with-lib-path=/tools/lib --target=$LFS_TGT --disable-nls --disable-werror";;
+	confParams="--prefix=/tools --disable-nls --disable-werror --with-lib-path=/tools/lib --with-sysroot";;
 	esac
 }
 
@@ -92,7 +92,7 @@ function tcl_preconf (){
 }
 
 function expect_preconf (){
-	cp -v configure{.,orig}
+	cp -v configure{,.orig}
 	sed 's:/usr/local/bin:/bin:' configure.orig > configure
 	confPath="."
 	confParams="--prefix=/tools --with-tcl=/tools/lib --with-tclinclude=/tools/include"
@@ -224,6 +224,10 @@ function tcl_premakei (){
 	TZ=UTC make test
 }
 
+function expect_premakei (){
+	make test
+}
+
 function check_premakei (){
 	make check
 }
@@ -240,6 +244,7 @@ function premakei (){
 	case $1 in
 	binutils-2.25.1) binut_premakei $binutNbPass;;
 	tcl-core8.6.4) tcl_premakei;;
+	expect5.45) expect_premakei;;
 	check-0.10.0|diffutils-3.3|file-5.24|findutils-4.4.2|\
 	gawk-4.1.3|grep-2.21|gzip-1.6|m4-1.4.17|make-4.1|\
 	patch-2.7.5|sed-4.2.2|tar-1.28|texinfo-6.0|xz-5.2.1) check_premakei;;
@@ -254,7 +259,7 @@ function gettext_makeinstall(){
 }
 
 function perl_makeinstall (){
-	cp -v perl cpan/pdlators/pod2man /tools/bin
+	cp -v perl cpan/podlators/pod2man /tools/bin
 	mkdir -pv /tools/lib/perl5/5.22.0
 	cp -Rv lib/* /tools/lib/perl5/5.22.0
 }
@@ -306,6 +311,7 @@ function bash_postmakei (){
 
 function postmakei (){
 	case $1 in
+	binutils-2.25.1) binut_postmakei $binutNbPass;;
 	gcc-5.2.0) gcc_postmakei $gccNbPass;;
 	linux-4.2) linux_postmakei;;
 	tcl-core8.6.4) tcl_postmakei;;
@@ -345,9 +351,9 @@ install "$packetName" "$packetDir"
 cd ..
 
 #step 5: remove all created directories during the process
-rm -fr "$listOfDir"
+rm -fr $listOfDir
 
-done
+done 1>output.log 2>error.log
 
 set +o xtrace
 unset BASH_XTRACEFD
