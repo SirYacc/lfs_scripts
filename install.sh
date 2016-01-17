@@ -1,17 +1,20 @@
 #!/bin/bash
+exec 4> $0.log
+export BASH_XTRACEFD=4
+set -o xtrace
 
-file="./system_tmp";
-binutNbPass="0";
-gccNbPass="0";
+file="./system_tmp"
+binutNbPass="0"
+gccNbPass="0"
 
 function gcc_lib_init (){
 
-	tar -xf ../mpfr-3.1.3.tar.xz;
-	mv -v mpfr-3.1.3 mpfr;
-	tar -xf ../gmp-6.0.0.a.tar.xz;
-	mv -v gmp-6.0.0 gmp;
-	tar -xf ../mpc-1.0.3.tar.gz;
-	mv -v mpc-1.0.3 mpc;
+	tar -xf ../mpfr-3.1.3.tar.xz
+	mv -v mpfr-3.1.3 mpfr
+	tar -xf ../gmp-6.0.0.a.tar.xz
+	mv -v gmp-6.0.0 gmp
+	tar -xf ../mpc-1.0.3.tar.gz
+	mv -v mpc-1.0.3 mpc
 
 	for elt in \
 	$(find gcc/config -name linux64.h -o -name linux.h -o -name sysv4.h)
@@ -31,16 +34,16 @@ function binut_preconf (){
 	case $1 in
 	1) buildDir="binutils-build";
 	listOfDir="$listOfDir $buildDir"
-	mkdir -v ../"$buildDir";
-	cd ../"$buildDir";
+	mkdir -v ../"$buildDir"
+	cd ../"$buildDir"
 	confPath="../$2"
 	confParams="--prefix=/tools --with-sysroot=$LFS --with-lib-path=/tools/lib --target=$LFS_TGT --disable-nls --disable-werror";;
-	2) buildDir="binutils-build";
+	2) buildDir="binutils-build"
 	listOfDir="$listOfDir $buildDir"
-	mkdir -v ../"$buildDir";
-	cd ../"$buildDir";
-	confVar="CC=$LFS_TGT-gcc; AR=$LFS_TGT-ar; RANLIB=$LFS_TGT-ranlib";
-	confPath="../$2";
+	mkdir -v ../"$buildDir"
+	cd ../"$buildDir"
+	confVar="CC=$LFS_TGT-gcc; AR=$LFS_TGT-ar; RANLIB=$LFS_TGT-ranlib"
+	confPath="../$2"
 	confParams="--prefix=/tools --with-sysroot=$LFS --with-lib-path=/tools/lib --target=$LFS_TGT --disable-nls --disable-werror";;
 	esac
 }
@@ -48,105 +51,105 @@ function binut_preconf (){
 function gcc_preconf (){
 	case $1 in
 	1) gcc_lib_init;
-	buildDir="gcc-build";
+	buildDir="gcc-build"
 	listOfDir="$listOfDir $buildDir"
-	mkdir -v ../"$buildDir";
-	cd ../"$buildDir";
+	mkdir -v ../"$buildDir"
+	cd ../"$buildDir"
 	confPath="../$2"
 	confParams="--target=$LFS_TGT --prefix=/tools --with-glibc-version=2.11 --with-sysroot=$LFS --with-newlib --without-headers --with-local-prefix=/tools --with-native-system-header-dir=/tools/include --disable-nls --disable-shared --disable-multilib --disable-decimal-float --disable-threads --disable-libatomic --disable-libgomp --disable-libquadmath --disable-libssp --disable-libvtv --disable-libstdcxx --enable-languages=c,c++";;
-	2) buildDir="gcc-build";
-	listOfDir="$listOfDir $buildDir";
-	mkdir -v ../"$buildDir";
-	cd ../"$buildDir";
-	confPath="../$2/libstdc++-v3";
+	2) buildDir="gcc-build"
+	listOfDir="$listOfDir $buildDir"
+	mkdir -v ../"$buildDir"
+	cd ../"$buildDir"
+	confPath="../$2/libstdc++-v3"
 	confParams="--host=$LFS_TGT --prefix=/tools --disable-multilib --disable-nls --disable-libstdcxx-threads --disable-libstdcxx-pch --with-gxx-include-dir=/tools/$LFS_TGT/include/c++/5.2.0";;
 	3) cat gcc/limitx.h gcc/glimits.h gcc/limity.h > `dirname $($LFS_TGT-gcc -print-libgcc-file-name)`/include-fixed/limits.h;
 	gcc_lib_init;
-	buildDir="gcc-build";
+	buildDir="gcc-build"
 	listOfDir="$listOfDir $buildDir"
-	mkdir -v ../"$buildDir";
-	cd ../"$buildDir";
-	confVar="CC=$LFS_TGT-gcc; CXX=$LFS_TGT-g++; AR=$LFS_TGT-ar; RANLIB=$LFS_TGT-ranlib";
-	confPath="../$2";
+	mkdir -v ../"$buildDir"
+	cd ../"$buildDir"
+	confVar="CC=$LFS_TGT-gcc; CXX=$LFS_TGT-g++; AR=$LFS_TGT-ar; RANLIB=$LFS_TGT-ranlib"
+	confPath="../$2"
 	confParams="--prefix=/tools --with-local-prefix=/tools --with-native-system-header-dir=/tools/include --enable-languages=c,c++ --disable-libstdcxx-pch --disable-multilib --disable-bootstrap --disable-libgomp";;
 	esac
 }
 
 function glibc_preconf (){
 	patch -Np1 -i ../glibc-2.22-upstream_i386_fix-1.patch;
-	buildDir="glibc-build";
-	listOfDir="$listOfDir $buildDir";
-	mkdir -v ../"$buildDir";
-	cd ../"$buildDir";
+	buildDir="glibc-build"
+	listOfDir="$listOfDir $buildDir"
+	mkdir -v ../"$buildDir"
+	cd ../"$buildDir"
 	confPath="../$1"
-	confParams="--prefix=/tools --host=$LFS_TGT --build=$(../"$buildDir"/scripts/config.guess) --disable-profile --enable-kernel=2.6.32 --enable-obsolete-rpc --with-headers=/tools/include libc_cv_forced_unwind=yes libc_cv_ctors_header=yes libc_cv_c_cleanup=yes";
+	confParams="--prefix=/tools --host=$LFS_TGT --build=$(../"$buildDir"/scripts/config.guess) --disable-profile --enable-kernel=2.6.32 --enable-obsolete-rpc --with-headers=/tools/include libc_cv_forced_unwind=yes libc_cv_ctors_header=yes libc_cv_c_cleanup=yes"
 }
 
 function tcl_preconf (){
-	cd unix;
-	confPath=".";
-	confParams="--prefix=/tools";
+	cd unix
+	confPath="."
+	confParams="--prefix=/tools"
 }
 
 function expect_preconf (){
-	cp -v configure{.,orig};
-	sed 's:/usr/local/bin:/bin:' configure.orig > configure;
-	confPath=".";
-	confParams="--prefix=/tools --with-tcl=/tools/lib --with-tclinclude=/tools/include";
+	cp -v configure{.,orig}
+	sed 's:/usr/local/bin:/bin:' configure.orig > configure
+	confPath="."
+	confParams="--prefix=/tools --with-tcl=/tools/lib --with-tclinclude=/tools/include"
 }
 
 function dejagnu_preconf (){
-	confPath=".";
-	confParams="--prefix=/tools";
+	confPath="."
+	confParams="--prefix=/tools"
 }
 
 function check_preconf (){
-	confVar="PKG_CONFIG=\"\"";
-	confPath=".";
-	confParams="--prefix=/tools";
+	confVar="PKG_CONFIG=\"\""
+	confPath="."
+	confParams="--prefix=/tools"
 }
 
 function ncurses_preconf (){
 	sed -i s/mawk// configure
-	confPath=".";
+	confPath="."
 	confParams="--prefix=/tools --with-shared --without-debug --without-ada --enable-widec --enable-overwrite"
 }
 
 function bash_preconf (){
-	confPath=".";
-	confParams="--prefix=/tools --without-bash-malloc";
+	confPath="."
+	confParams="--prefix=/tools --without-bash-malloc"
 }
 
 function coreutils_preconf (){
-	confPath=".";
-	confParams="--prefix=/tools --enable-install-program=hostname";
+	confPath="."
+	confParams="--prefix=/tools --enable-install-program=hostname"
 }
 
 function default_preconf (){
-	confPath=".";
-	confParams="--prefix=/tools";
+	confPath="."
+	confParams="--prefix=/tools"
 }
 
 function gettext_preconf (){
 	cd gettext-tools
-	confVar="EMACS=no";
-	confPath=".";
-	confParams="--prefix/tools --disable-shared";
+	confVar="EMACS=no"
+	confPath="."
+	confParams="--prefix/tools --disable-shared"
 }
 
 function make_preconf(){
-	confPath=".";
-	confParams="--prefix=/tools --without-guile";
+	confPath="."
+	confParams="--prefix=/tools --without-guile"
 }
 
 function perl_preconf(){
-	confCmd="sh Configure";
-	confParams="-des -Dprefix=/tools -Dlibs=-lm";
+	confCmd="sh Configure"
+	confParams="-des -Dprefix=/tools -Dlibs=-lm"
 }
 
 function util_linux_preconf(){
-	confPath=".";
-	confParams="--prefix=/tools --without-python --disable-makeinstall-chown --without-systemdsystemunitdir PKG_CONFIG=\"\"";
+	confPath="."
+	confParams="--prefix=/tools --without-python --disable-makeinstall-chown --without-systemdsystemunitdir PKG_CONFIG=\"\""
 }
 
 function preconf (){
@@ -184,6 +187,7 @@ function conf (){
 		$confPath/configure $confParams
 		unset confPath
 	elif test -v confCmd
+	then
 		$confCmd $confParams
 		unset confCmd
 	fi
@@ -202,7 +206,7 @@ function makecmd (){
 	case $1 in
 	linux-4.2) make mrproper;;
 	gettext-0.19.5.1) gettext_makecmd;;
-	dejagnu-1.5.3|gettext-0.19.5.1) return;;
+	dejagnu-1.5.3) return;;
 	*) make;;
 	esac
 }
@@ -323,7 +327,7 @@ listOfPackets=$(cat $file)
 
 for packet in $listOfPackets
 do
-listOfDir="";
+listOfDir=""
 #step 1: extract the packet
 tar -xf "$packet"
 
@@ -331,10 +335,10 @@ tar -xf "$packet"
 tmp_path=$(tar -tf $packet | head -n1)
 packetDir=${tmp_path%%/*}
 cd "$packetDir"
-listOfDir="$packetDir";
+listOfDir="$packetDir"
 
 #step 3: packet installation (variable)
-packetName=$(echo "$packet" | sed -r 's/a?[-.](src|tar).*') 
+packetName=$(echo "$packet" | sed -r 's/a?[-.](src|tar).*//') 
 install "$packetName" "$packetDir"
 
 #step 4: go back to sources directory
@@ -344,3 +348,6 @@ cd ..
 rm -fr "$listOfDir"
 
 done
+
+set +o xtrace
+unset BASH_XTRACEFD
