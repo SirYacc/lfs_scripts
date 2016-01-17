@@ -1,6 +1,6 @@
 #!/bin/bash
 
-listOfPackets="./system_tmp";
+file="./system_tmp";
 binutNbPass="0";
 gccNbPass="0";
 
@@ -319,7 +319,9 @@ function install (){
 	postmakei "$1" "$2"
 }
 
-for packet in $(cat $listOfPackets)
+listOfPackets=$(cat $file)
+
+for packet in $listOfPackets
 do
 listOfDir="";
 #step 1: extract the packet
@@ -338,7 +340,7 @@ install "$packetName" "$packetDir"
 #step 4: go back to sources directory
 cd ..
 
-#step 5: remove all directories created during the process
+#step 5: remove all created directories during the process
 rm -fr "$listOfDir"
 
 done
