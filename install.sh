@@ -1,7 +1,6 @@
-file="./system_tmp";
-tmp_file="tmp.$$";
-gcc_step=0;
-true >| "$tmp_file";
+#!/bin/bash
+
+listOfPackets="./system_tmp";
 binutNbPass="0";
 gccNbPass="0";
 
@@ -40,7 +39,7 @@ function binut_preconf (){
 	listOfDir="$listOfDir $buildDir"
 	mkdir -v ../"$buildDir";
 	cd ../"$buildDir";
-	confVar="CC=$LFS_TGT-gcc; AR=$LFS_TGT-ar; RANLIB=$LFS_TGT-ranlib;";
+	confVar="CC=$LFS_TGT-gcc; AR=$LFS_TGT-ar; RANLIB=$LFS_TGT-ranlib";
 	confPath="../$2";
 	confParams="--prefix=/tools --with-sysroot=$LFS --with-lib-path=/tools/lib --target=$LFS_TGT --disable-nls --disable-werror";;
 	esac
@@ -67,7 +66,7 @@ function gcc_preconf (){
 	listOfDir="$listOfDir $buildDir"
 	mkdir -v ../"$buildDir";
 	cd ../"$buildDir";
-	confVar="CC=$LFS_TGT-gcc; CXX=$LFS_TGT-g++; AR=$LFS_TGT-ar; RANLIB=$LFS_TGT-ranlib;";
+	confVar="CC=$LFS_TGT-gcc; CXX=$LFS_TGT-g++; AR=$LFS_TGT-ar; RANLIB=$LFS_TGT-ranlib";
 	confPath="../$2";
 	confParams="--prefix=/tools --with-local-prefix=/tools --with-native-system-header-dir=/tools/include --enable-languages=c,c++ --disable-libstdcxx-pch --disable-multilib --disable-bootstrap --disable-libgomp";;
 	esac
@@ -102,7 +101,7 @@ function dejagnu_preconf (){
 }
 
 function check_preconf (){
-	confVar="PKG_CONFIG=\"\";";
+	confVar="PKG_CONFIG=\"\"";
 	confPath=".";
 	confParams="--prefix=/tools";
 }
@@ -130,7 +129,7 @@ function default_preconf (){
 
 function gettext_preconf (){
 	cd gettext-tools
-	confVar="EMACS=no;";
+	confVar="EMACS=no";
 	confPath=".";
 	confParams="--prefix/tools --disable-shared";
 }
@@ -141,11 +140,12 @@ function make_preconf(){
 }
 
 function perl_preconf(){
+	confCmd="sh Configure";
 	confParams="-des -Dprefix=/tools -Dlibs=-lm";
 }
 
 function util_linux_preconf(){
-	confVar=".";
+	confPath=".";
 	confParams="--prefix=/tools --without-python --disable-makeinstall-chown --without-systemdsystemunitdir PKG_CONFIG=\"\"";
 }
 
@@ -168,12 +168,155 @@ function preconf (){
 	make-4.1) make_preconf $2;;
 	perl-5.22.0) perl_preconf $2;;
 	util-linux-2.27) util_linux_preconf;;
-	*) true;;
+	*) return;;
 	esac
 }
 
+function conf (){
+	if test -v confVar
+	then
+		declare -g $confVar
+		unset confVar
+	fi
+	
+	if test -v confPath
+	then
+		$confPath/configure $confParams
+		unset confPath
+	elif test -v confCmd
+		$confCmd $confParams
+		unset confCmd
+	fi
+	unset confParams
+}
+
+function gettext_makecmd (){
+	make -C gnulib-lib
+	make -C intl pluralx.c
+	make -c src msgfmt
+	make -C src msgmerge
+	make -C src xgettext
+}
+
+function makecmd (){
+	case $1 in
+	linux-4.2) make mrproper;;
+	gettext-0.19.5.1) gettext_makecmd;;
+	dejagnu-1.5.3|gettext-0.19.5.1) return;;
+	*) make;;
+	esac
+}
+
+function binut_premakei (){
+	case $1 in
+	1) case $(uname -m) in
+		x86_64) mkdir -v /tools/lib && ln -sv lib /tools/lib64;;
+		esac;;
+	2) return;;
+	esac
+}
+
+function tcl_premakei (){
+	TZ=UTC make test
+}
+
+function check_premakei (){
+	make check
+}
+
+function bash_premakei (){
+	make_tests
+}
+
+function coreutils_premakei (){
+	make RUN_EXPENSIVE_TESTS=yes check
+}
+
+function premakei (){
+	case $1 in
+	binutils-2.25.1) binut_premakei $binutNbPass;;
+	tcl-core8.6.4) tcl_premakei;;
+	check-0.10.0|diffutils-3.3|file-5.24|findutils-4.4.2|\
+	gawk-4.1.3|grep-2.21|gzip-1.6|m4-1.4.17|make-4.1|\
+	patch-2.7.5|sed-4.2.2|tar-1.28|texinfo-6.0|xz-5.2.1) check_premakei;;
+	bash-4.3.30) bash_premakei;;
+	coreutils-8.24) coreutils_premakei;;
+	*) return;;
+	esac
+}
+
+function gettext_makeinstall(){
+	cp -v src/{msgfmt,msgmerge,xgettext} /tools/bin
+}
+
+function perl_makeinstall (){
+	cp -v perl cpan/pdlators/pod2man /tools/bin
+	mkdir -pv /tools/lib/perl5/5.22.0
+	cp -Rv lib/* /tools/lib/perl5/5.22.0
+}
+
+function makeinstall (){
+	case $1 in
+	linux-4.2) make INSTALL_HDR_PATH=dest headers_install;;
+	expect5.45) make SCRIPTS="" install;;
+	bzip2-1.0.6) make PREFIX=/tools install;;
+	gettext-0.19.5.1) gettext_makeinstall;;
+	perl-5.22.0) perl_makeinstall;;
+	*) make install;;
+	esac
+}
+
+function binut_postmakei (){
+	case $1 in
+	1) return;;
+	2) make -C ld clean
+		make -C ld LIB_PATH=/usr/lib:/lib
+		cp -v ld/ld-new /tools/bin;;
+	esac
+}
+
+function linux_postmakei (){
+	cp -rv dest/include/* /tools/include
+}
+
+function gcc_postmakei (){
+	case $1 in
+	1|2) return;;
+	3) ln -sv gcc /tools/bin/cc;;
+	esac
+}
+
+function tcl_postmakei (){
+	chmod -v u+w /tools/lib/libtcl8.6.so
+	make install-private-headers
+	ln -sv tclsh8.6 /tools/bin/tclsh
+}
+
+function dejagnu_postmakei (){
+	make check
+}
+
+function bash_postmakei (){
+	ln -sv bash /tools/bin/sh
+}
+
+function postmakei (){
+	case $1 in
+	gcc-5.2.0) gcc_postmakei $gccNbPass;;
+	linux-4.2) linux_postmakei;;
+	tcl-core8.6.4) tcl_postmakei;;
+	dejagnu-1.5.3) dejagnu_postmakei;;
+	bash-4.3.30) bash_postmakei;;
+	*) return;;
+	esac
+}
 function install (){
 	preconf "$1" "$2"
+	conf "$1" "$2"
+	makecmd "$1" "$2"
+	premakei "$1" "$2"
+	makeinstall "$1" "$2"
+	postmakei "$1" "$2"
 }
 
 for packet in $(cat $listOfPackets)
