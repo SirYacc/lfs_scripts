@@ -132,7 +132,7 @@ function default_preconf (){
 
 function gettext_preconf (){
 	cd gettext-tools
-	confVar="EMACS=no"
+	confVar="EMACS=\"no\""
 	confPath="."
 	confParams="--prefix/tools --disable-shared"
 }
@@ -197,7 +197,7 @@ function conf (){
 function gettext_makecmd (){
 	make -C gnulib-lib
 	make -C intl pluralx.c
-	make -c src msgfmt
+	make -C src msgfmt
 	make -C src msgmerge
 	make -C src xgettext
 }
@@ -233,7 +233,7 @@ function check_premakei (){
 }
 
 function bash_premakei (){
-	make_tests
+	make tests
 }
 
 function coreutils_premakei (){
@@ -318,6 +318,7 @@ function postmakei (){
 	tcl-core8.6.4) tcl_postmakei;;
 	dejagnu-1.5.3) dejagnu_postmakei;;
 	bash-4.3.30) bash_postmakei;;
+	gettext-0.19.5.1) cd ..;;
 	*) return;;
 	esac
 }
@@ -354,7 +355,8 @@ cd ..
 #step 5: remove all created directories during the process
 rm -fr $listOfDir
 
-done 1>output.log 2>error.log
+done 
+#1>output.log 2>error.log
 
 set +o xtrace
 unset BASH_XTRACEFD
